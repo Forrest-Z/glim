@@ -9,7 +9,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-option(BUILD_WITH_CUDA "Build with GPU support" ON)
+option(BUILD_WITH_CUDA "Build with GPU support" OFF)
 option(BUILD_WITH_CUDA_MULTIARCH "Build with GPU cross-platform support" OFF)
 option(BUILD_WITH_VIEWER "Build with visualizer" ON)
 option(BUILD_WITH_MARCH_NATIVE "Build with -march=native" OFF)
@@ -46,6 +46,12 @@ if(BUILD_WITH_CUDA)
     set(GPU_SRCS src/glim/odometry/odometry_estimation_gpu.cpp)
   endif()
 endif()
+
+find_package(catkin REQUIRED)
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${glim_LIBRARIES} ${GTSAM_LIBRARIES} fmt spdlog::spdlog
+)
 
 add_library(glim SHARED
   # util
@@ -88,13 +94,19 @@ add_library(glim SHARED
   # GPU-related
   ${GPU_SRCS}
 )
+add_dependencies(glim
+  ${glim_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+)
 target_include_directories(glim PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/json/include>
   $<INSTALL_INTERFACE:include/glim>
   ${OpenCV_INCLUDE_DIRS}
+  /usr/local/include/iridescence
 )
 target_link_libraries(glim
+  ${catkin_LIBRARIES}
   Boost::boost
   Boost::serialization
   Eigen3::Eigen
@@ -102,7 +114,7 @@ target_link_libraries(glim
   gtsam_points::gtsam_points
   OpenMP::OpenMP_CXX
   spdlog::spdlog
-  $<TARGET_NAME_IF_EXISTS:Iridescence::Iridescence>
+  Iridescence::iridescence
   ${OpenCV_LIBRARIES}
 )
 list(APPEND glim_LIBRARIES glim)
